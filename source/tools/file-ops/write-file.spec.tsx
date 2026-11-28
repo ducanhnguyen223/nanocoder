@@ -424,6 +424,65 @@ test.serial('write_file allows overwriting after separate reads cover the whole 
 	}
 });
 
+test.serial('write_file allows a follow-up overwrite after string_replace following full ranged reads', async t => {
+	const filePath = join(testDir, 'ranged-string-edit.txt');
+	await writeFile(filePath, 'one\ntwo\nthree', 'utf-8');
+	const originalCwd = process.cwd();
+	try {
+		process.chdir(testDir);
+		await executeReadFile({path: 'ranged-string-edit.txt', start_line: 1, end_line: 2});
+		await executeReadFile({path: 'ranged-string-edit.txt', start_line: 3, end_line: 3});
+		t.false(hasFileSnapshot(await realpath(filePath)));
+
+		await executeValidatedStringReplace({
+			path: 'ranged-string-edit.txt',
+			old_str: 'two',
+			new_str: 'TWO',
+		});
+		t.false(hasFileSnapshot(await realpath(filePath)));
+
+		await executeValidatedWriteFile({
+			path: 'ranged-string-edit.txt',
+			content: 'complete replacement\n',
+		});
+		t.is(await readFile(filePath, 'utf-8'), 'complete replacement\n');
+	} finally {
+		process.chdir(originalCwd);
+	}
+});
+
+test.serial('write_file allows a follow-up overwrite after diff_edit following full ranged reads', async t => {
+	const filePath = join(testDir, 'ranged-diff-edit.txt');
+	await writeFile(filePath, 'one\ntwo\nthree', 'utf-8');
+	const originalCwd = process.cwd();
+	try {
+		process.chdir(testDir);
+		await executeReadFile({path: 'ranged-diff-edit.txt', start_line: 1, end_line: 2});
+		await executeReadFile({path: 'ranged-diff-edit.txt', start_line: 3, end_line: 3});
+		t.false(hasFileSnapshot(await realpath(filePath)));
+
+		await executeValidatedDiffEdit({
+			path: 'ranged-diff-edit.txt',
+			diff: [
+				'<<<<<<< SEARCH',
+				'two',
+				'=======',
+				'TWO',
+				'>>>>>>> REPLACE',
+			].join('\n'),
+		});
+		t.false(hasFileSnapshot(await realpath(filePath)));
+
+		await executeValidatedWriteFile({
+			path: 'ranged-diff-edit.txt',
+			content: 'complete replacement\n',
+		});
+		t.is(await readFile(filePath, 'utf-8'), 'complete replacement\n');
+	} finally {
+		process.chdir(originalCwd);
+	}
+});
+
 test.serial('write_file keeps full-file visibility after a later ranged read', async t => {
 	const filePath = join(testDir, 'write-then-range.txt');
 	const originalCwd = process.cwd();
