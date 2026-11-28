@@ -415,9 +415,7 @@ test.serial('write_file allows overwriting after separate reads cover the whole 
 			path: 'ranged.txt',
 			content: 'replacement\n',
 		};
-		const result = await writeFileTool.validator!(args);
-		t.true(result.valid);
-		await executeWriteFileWithoutRead(args);
+		await executeValidatedWriteFile(args);
 		t.is(await readFile(join(testDir, 'ranged.txt'), 'utf-8'), args.content);
 	} finally {
 		process.chdir(originalCwd);
@@ -526,9 +524,7 @@ test.serial('write_file allows overwriting after reading a large-file preview an
 			path: 'large-ranged.txt',
 			content: 'replacement after the full visible read\n',
 		};
-		const result = await writeFileTool.validator!(args);
-		t.true(result.valid);
-		await executeWriteFileWithoutRead(args);
+		await executeValidatedWriteFile(args);
 		t.is(await readFile(join(testDir, 'large-ranged.txt'), 'utf-8'), args.content);
 	} finally {
 		process.chdir(originalCwd);

@@ -190,7 +190,7 @@ test.serial('atomicWriteUserFile replaces an existing file', async t => {
 	}
 });
 
-test.serial('atomicWriteUserFile runs its final guard before replacing the target', async t => {
+test.serial('atomicWriteUserFile runs its final guard after staging and before replacing the target', async t => {
 	const tempDir = await createTempDir();
 	try {
 		const filePath = path.join(tempDir, 'guarded.txt');
@@ -199,6 +199,11 @@ test.serial('atomicWriteUserFile runs its final guard before replacing the targe
 		await t.throwsAsync(
 			atomicWriteUserFile(filePath, 'replacement', async targetPath => {
 				t.is(targetPath, filePath);
+				const [tempFile] = await listTempFiles(tempDir);
+				t.truthy(tempFile);
+				if (tempFile !== undefined) {
+					t.is(await fs.readFile(path.join(tempDir, tempFile), 'utf-8'), 'replacement');
+				}
 				throw new Error('stale target');
 			}),
 			{message: 'stale target'},
